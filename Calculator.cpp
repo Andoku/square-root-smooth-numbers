@@ -4,8 +4,8 @@ Calculator::Calculator() {}
 
 Calculator::~Calculator() {}
 
-void Calculator::start() {
-    
+uint64_t Calculator::start(uint64_t upperLimit) {
+    return 0;
 }
 
 
