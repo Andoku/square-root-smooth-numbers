@@ -1,51 +1,114 @@
 #include <iostream>
+#include <vector>
+#include <thread>
 
 #include <math.h>
 
 #include "Calculator.h"
 
-Calculator::Calculator() {}
+Calculator::Calculator() :
+numbersCounter(0),
+progressCounter(0),
+totalNumbers(0) {}
 
 Calculator::~Calculator() {}
 
 uint64_t Calculator::start(uint64_t upperLimit) {
-    uint64_t counter = 0;
-    for(uint64_t i = 1; i <= upperLimit; ++i) {
-        if(isSquareRootSmooth(i)) {
-            ++counter;
+    totalNumbers = upperLimit;
+    //return countForRange(1, upperLimit);
+    
+    const size_t threadsNumber = std::thread::hardware_concurrency();
+    const uint64_t range = upperLimit / threadsNumber;
+    std::vector<std::thread> threads;
+    uint64_t lower = 0;
+    for(size_t i = 0; i < threadsNumber; ++i) {
+        uint64_t upper = lower + range;
+        if((upper > upperLimit) || (upperLimit - upper < range)) {
+            upper = upperLimit;
         }
         
-        if(i % 10000 == 0) {
-            const float percent = (float) i / upperLimit * 100;
-            std::cout << "\r" << percent << "% " << counter;
-        }
+        threads.push_back(std::thread(&Calculator::countForRange, this, lower + 1, upper));
+        std::cout << i << ": " << lower + 1 << " " << upper << "\n";
+        lower += range;
     }
     
-    return counter;
+    while(progressCounter < totalNumbers) {
+        const float percent = (float) progressCounter / totalNumbers * 100;
+        std::cout << "\r" << percent << "% " << numbersCounter << std::flush;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    for(auto &t : threads) {
+        t.join();
+    }
+    return numbersCounter;
+}
+
+void Calculator::countForRange(uint64_t lowerLimit, uint64_t upperLimit) {
+    for(uint64_t i = lowerLimit; i <= upperLimit; ++i) {
+        if(isSquareRootSmooth(i)) {
+            ++numbersCounter;
+        }
+        ++progressCounter;
+    }
 }
 
 bool Calculator::isSquareRootSmooth(uint64_t number) const {
-    const double root = sqrt(number);
+    if(isPerfectSquare(number)) {
+        const uint64_t root = sqrt(number);
+        return isPrime(root);
+    }
     
-    while (number % 2 == 0) {  
-        if(2 >= root) {
-            return false;
-        }
-        number /= 2;  
-    }  
-  
-    for (uint64_t i = 3; i <= root; i += 2) {  
-        while (number % i == 0) {  
-            if(i >= root) {
-                return false;
-            }
-            number /= i;  
-        }  
-    }  
-  
-    if (number > 2 && number >= root) {
+    return isPrime(number);
+}
+
+bool Calculator::isPrime(uint64_t number) const {
+    if(number <= 1) { 
+        return false;
+    } else if(number <= 3) {
+        return true;
+    } else if(number % 2 == 0 || number % 3 == 0) {
         return false;
     }
     
+    const uint64_t root = sqrt(number);
+    for (uint64_t i = 5; i <= root; i += 6) {
+        if (number % i == 0 || number % (i + 2) == 0) {
+           return false;
+        }
+    }
+
     return true;
 }
+
+bool Calculator::isPerfectSquare(uint64_t number) const {   
+    const long double root = sqrt(number);
+    return ((root - floor(root)) == 0); 
+}
+
+//bool Calculator::isPrime(uint64_t number) const {
+//    if(number == 1) {
+//        return false;
+//    }
+//  
+//    const uint64_t root = sqrt(number);
+//    for(uint64_t i = 2; i <= root; ++i) {
+//        if(number % i == 0) {
+//            return false;
+//        }
+//    }
+//    
+//    return true;
+//}
+
+//bool Calculator::isPerfectSquare(uint64_t number) const { 
+//    uint64_t r = 1;
+//    uint64_t i = 1;
+//    
+//	while(r < number) {
+//		++i;
+//		r = i * i;
+//	}
+//    
+//	return (r == number);
+//}

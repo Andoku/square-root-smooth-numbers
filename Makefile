@@ -8,7 +8,7 @@ EXECUTABLE=out
 all: $(SOURCES) $(EXECUTABLE)
 	
 $(EXECUTABLE): $(OBJECTS) 
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ -pthread
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
